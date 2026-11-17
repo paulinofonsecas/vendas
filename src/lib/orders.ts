@@ -8,10 +8,10 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export const STATUS_STYLES: Record<OrderStatus, string> = {
-  pending_payment: "bg-amber-100 text-amber-900 border-amber-200",
-  confirmed: "bg-blue-100 text-blue-900 border-blue-200",
-  delivered: "bg-emerald-100 text-emerald-900 border-emerald-200",
-  cancelled: "bg-neutral-200 text-neutral-700 border-neutral-300",
+  pending_payment: "border-amber-500/30 bg-amber-500/15 text-amber-300",
+  confirmed: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+  delivered: "border-emerald-500/30 bg-emerald-500/15 text-emerald-300",
+  cancelled: "border-neutral-500/30 bg-neutral-500/15 text-neutral-300",
 };
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {

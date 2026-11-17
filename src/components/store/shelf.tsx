@@ -66,15 +66,6 @@ export function Shelf({
 
       <div className="relative">
         <div
-          aria-hidden
-          className="from-background pointer-events-none absolute inset-y-0 left-0 z-10 hidden w-24 bg-gradient-to-r to-transparent sm:block"
-        />
-        <div
-          aria-hidden
-          className="from-background pointer-events-none absolute inset-y-0 right-0 z-10 hidden w-24 bg-gradient-to-l to-transparent sm:block"
-        />
-
-        <div
           ref={trackRef}
           className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >

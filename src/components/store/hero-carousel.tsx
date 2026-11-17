@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { buttonVariants } from "@/components/ui/button";
-
 export type Banner = {
   title: string;
   subtitle: string;
@@ -31,42 +29,46 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
     setIndex((i) => (i + direction + banners.length) % banners.length);
 
   return (
-    <div
-      className="mx-auto max-w-7xl px-2 pt-2 sm:px-6 sm:pt-8"
+    <section
+      aria-label="Destaques"
+      className="relative w-full"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="relative overflow-hidden rounded-xl">
+      <div className="relative h-[40vh] max-h-[560px] min-h-[300px] w-full overflow-hidden">
         {banners.map((banner, i) => (
           <div
             key={banner.href + i}
             aria-hidden={i !== index}
-            className={`${i === index ? "relative" : "hidden"} transition-opacity`}
+            className={`absolute inset-0 transition-opacity duration-500 ${
+              i === index ? "z-10 opacity-100" : "pointer-events-none z-0 opacity-0"
+            }`}
           >
-            <div className={`relative overflow-hidden bg-gradient-to-br ${banner.gradient}`}>
+            <div className={`relative h-full w-full bg-gradient-to-br ${banner.gradient}`}>
               <div
                 aria-hidden
-                className="absolute inset-0 bg-[radial-gradient(circle_at_80%_-20%,rgba(255,255,255,0.4),transparent_60%)]"
+                className="absolute inset-0 bg-[radial-gradient(circle_at_85%_-20%,rgba(255,255,255,0.42),transparent_60%)]"
+              />
+              <div
+                aria-hidden
+                className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"
               />
 
-              <div className="relative flex min-h-[190px] flex-col justify-center px-5 py-7 sm:min-h-[260px] sm:px-10 sm:py-12">
+              <div className="relative mx-auto flex h-full max-w-7xl flex-col justify-center px-5 sm:px-6">
                 {banner.badge ? (
-                  <span className="mb-3 w-fit rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold tracking-wide text-white uppercase backdrop-blur-sm sm:text-xs">
+                  <span className="mb-3 w-fit rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold tracking-widest text-white uppercase backdrop-blur-sm sm:text-xs">
                     {banner.badge}
                   </span>
                 ) : null}
 
-                <h1 className="max-w-lg text-xl leading-tight font-semibold text-white sm:text-3xl">
+                <h1 className="max-w-xl text-2xl leading-tight font-semibold text-white drop-shadow-sm sm:text-4xl">
                   {banner.title}
                 </h1>
-                <p className="mt-2 max-w-md text-sm text-white/85 sm:text-base">{banner.subtitle}</p>
+                <p className="mt-2 max-w-md text-sm text-white/90 sm:text-base">{banner.subtitle}</p>
 
                 <Link
                   href={banner.href}
-                  className={buttonVariants({
-                    size: "lg",
-                    className: "mt-5 w-fit bg-white text-black hover:bg-white/90",
-                  })}
+                  className="mt-5 inline-flex h-11 w-fit items-center rounded-full bg-white px-6 text-sm font-semibold text-neutral-900 shadow-sm transition hover:bg-white/90"
                 >
                   {banner.cta}
                 </Link>
@@ -77,28 +79,24 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
 
         {banners.length > 1 ? (
           <>
-            <div className="pointer-events-none absolute inset-y-0 left-0 z-10 flex items-center pl-2">
-              <button
-                type="button"
-                onClick={() => go(-1)}
-                aria-label="Banner anterior"
-                className="pointer-events-auto rounded-full bg-black/20 p-1.5 text-white backdrop-blur-sm hover:bg-black/35"
-              >
-                <ChevronLeft className="size-3 sm:size-5" />
-              </button>
-            </div>
-            <div className="pointer-events-none absolute inset-y-0 right-0 z-10 flex items-center pr-2">
-              <button
-                type="button"
-                onClick={() => go(1)}
-                aria-label="Banner seguinte"
-                className="pointer-events-auto rounded-full bg-black/20 p-1.5 text-white backdrop-blur-sm hover:bg-black/35"
-              >
-                <ChevronRight className="size-3 sm:size-5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              aria-label="Banner anterior"
+              className="absolute top-1/2 left-2 z-20 -translate-y-1/2 rounded-full bg-black/25 p-2 text-white backdrop-blur-sm transition hover:bg-black/45 sm:left-4"
+            >
+              <ChevronLeft className="size-4 sm:size-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              aria-label="Banner seguinte"
+              className="absolute top-1/2 right-2 z-20 -translate-y-1/2 rounded-full bg-black/25 p-2 text-white backdrop-blur-sm transition hover:bg-black/45 sm:right-4"
+            >
+              <ChevronRight className="size-4 sm:size-5" />
+            </button>
 
-            <div className="absolute inset-x-0 bottom-2 z-10 flex justify-center gap-1.5">
+            <div className="absolute inset-x-0 bottom-3 z-20 flex justify-center gap-1.5">
               {banners.map((banner, i) => (
                 <button
                   key={banner.href + i}
@@ -106,7 +104,7 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
                   onClick={() => setIndex(i)}
                   aria-label={`Ir para o banner ${i + 1}`}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === index ? "w-5 bg-white" : "w-1.5 bg-white/50"
+                    i === index ? "w-6 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
                   }`}
                 />
               ))}
@@ -114,6 +112,6 @@ export function HeroCarousel({ banners }: { banners: Banner[] }) {
           </>
         ) : null}
       </div>
-    </div>
+    </section>
   );
 }

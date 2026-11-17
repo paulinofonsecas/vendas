@@ -29,7 +29,7 @@ export function ProofForm({ orderId }: { orderId: string }) {
 
       {state.error ? <p className="text-destructive text-sm">{state.error}</p> : null}
       {state.success ? (
-        <p className="text-sm text-emerald-700">
+        <p className="text-sm text-emerald-400">
           Comprovativo enviado. Vamos confirmar e avisar-te por WhatsApp.
         </p>
       ) : null}

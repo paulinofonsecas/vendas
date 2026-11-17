@@ -133,7 +133,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 {pendingProof ? (
-                  <p className="text-amber-700">
+                  <p className="text-amber-400">
                     Comprovativo recebido. Assim que validarmos, avisamos-te por WhatsApp.
                   </p>
                 ) : (
