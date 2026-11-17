@@ -1,130 +1,159 @@
 import Link from "next/link";
+import { MessageCircle, ShieldCheck, Timer, Wallet } from "lucide-react";
 
+import { ProductCard } from "@/components/store/product-card";
+import { BottomNav } from "@/components/store/bottom-nav";
+import { Faq } from "@/components/store/faq";
+import { HeroCarousel, type Banner } from "@/components/store/hero-carousel";
+import { Shelf } from "@/components/store/shelf";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatAOA, whatsappLink } from "@/lib/money";
+import { TYPE_META, TYPE_ORDER } from "@/lib/catalog";
 import { getPublicSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow, ProductType } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
-const GROUPS: Record<ProductType, { title: string; description: string }> = {
-  profile: {
-    title: "Perfis de streaming",
-    description: "Netflix e outros serviços, com garantia de substituição.",
-  },
-  fx: { title: "Câmbio", description: "Compra e venda de divisas com taxa actualizada." },
-  design: { title: "Design", description: "Flyers e artes para redes sociais." },
-  digital: { title: "Produtos digitais", description: "Guias e materiais com entrega imediata." },
-};
+const TRUST = [
+  { icon: Wallet, label: "Pagamento local em AOA" },
+  { icon: MessageCircle, label: "Confirmação por WhatsApp" },
+  { icon: ShieldCheck, label: "Garantia de substituição" },
+  { icon: Timer, label: "Entrega no mesmo dia" },
+];
 
-const ORDER: ProductType[] = ["profile", "fx", "design", "digital"];
+function buildBanners(
+  catalog: CatalogRow[],
+  rate: { sell: number } | null,
+): Banner[] {
+  const first = (type: ProductType) => catalog.find((product) => product.type === type);
 
-function priceLabel(product: CatalogRow): string {
-  if (product.type === "fx") return "Taxa do dia";
-  if (product.price === 0) return "Sob consulta";
-  return formatAOA(product.price);
+  const banners: Banner[] = [];
+
+  const profile = first("profile");
+  if (profile) {
+    banners.push({
+      badge: "Mais procurado",
+      title: `Perfis de streaming a partir de ${formatAOA(profile.price)}`,
+      subtitle: "Netflix e outros serviços com garantia de substituição durante o período.",
+      cta: "Ver perfis",
+      href: "/categoria/profile",
+      gradient: "from-rose-600 via-rose-500 to-orange-400",
+    });
+  }
+
+  const fx = first("fx");
+  if (fx) {
+    banners.push({
+      badge: "Câmbio do dia",
+      title: rate ? `1 USD = ${rate.sell.toLocaleString("pt-PT")} AOA` : "Compra e venda de divisas",
+      subtitle: "Cotação fixada no momento do pedido, sem surpresas depois.",
+      cta: "Ver cotação",
+      href: `/p/${fx.slug}`,
+      gradient: "from-emerald-700 via-emerald-500 to-lime-400",
+    });
+  }
+
+  const design = first("design") ?? first("digital");
+  if (design) {
+    banners.push({
+      badge: "Serviço rápido",
+      title: design.name,
+      subtitle: "Escolhe, deixa o WhatsApp e recebe a confirmação em minutos.",
+      cta: "Ver serviço",
+      href: `/p/${design.slug}`,
+      gradient: "from-violet-700 via-violet-500 to-fuchsia-400",
+    });
+  }
+
+  return banners;
 }
 
 export default async function HomePage() {
   const supabase = await createClient();
-  const [{ data: products }, { store }] = await Promise.all([
+
+  const [{ data: products }, { data: rates }, { store }] = await Promise.all([
     supabase.from("catalog").select("*").order("sort", { ascending: true }),
+    supabase.from("fx_rates").select("base, quote, sell").eq("active", true),
     getPublicSettings(),
   ]);
 
   const catalog = (products ?? []) as CatalogRow[];
-  const wa = store.whatsapp
-    ? whatsappLink(store.whatsapp, "Olá! Quero fazer um pedido.")
-    : null;
+  const usd = (rates ?? []).find((rate) => rate.base === "USD" && rate.quote === "AOA");
+  const banners = buildBanners(catalog, usd ? { sell: Number(usd.sell) } : null);
 
   return (
     <>
       <SiteHeader store={store} />
 
-      <main className="flex-1">
-        <section className="border-border/60 border-b">
-          <div className="mx-auto w-full max-w-6xl px-4 py-16 sm:py-24">
-            <p className="text-muted-foreground mb-4 text-sm font-medium tracking-wide uppercase">
-              {store.name}
-            </p>
-            <h1 className="max-w-2xl text-4xl leading-tight font-semibold tracking-tight sm:text-5xl">
-              Perfis, câmbio e design. Resolvido em minutos.
-            </h1>
-            <p className="text-muted-foreground mt-4 max-w-xl text-lg">
-              Escolhe o serviço, deixa o teu WhatsApp e paga por transferência ou em dinheiro.
-              Confirmamos tudo por WhatsApp.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="#catalogo" className={buttonVariants({ size: "lg" })}>
-                Ver catálogo
-              </Link>
-              {wa ? (
-                <a
-                  href={wa}
-                  target="_blank"
-                  rel="noreferrer"
-                  className={buttonVariants({ size: "lg", variant: "outline" })}
-                >
-                  Falar no WhatsApp
-                </a>
-              ) : null}
-            </div>
+      <main className="flex-1 pb-16 sm:pb-0">
+        <HeroCarousel banners={banners} />
+
+        <div id="catalogo" className="pt-2">
+          {TYPE_ORDER.map((type) => {
+            const items = catalog.filter((product) => product.type === type);
+            if (items.length === 0) return null;
+
+            return (
+              <Shelf
+                key={type}
+                title={TYPE_META[type].plural}
+                subtitle={
+                  items.length === 1 ? "1 opção disponível" : `${items.length} opções disponíveis`
+                }
+                href={`/categoria/${type}`}
+              >
+                {items.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </Shelf>
+            );
+          })}
+        </div>
+
+        {catalog.length === 0 ? (
+          <p className="text-muted-foreground mx-auto max-w-7xl px-4 py-16">
+            Ainda não há produtos publicados.
+          </p>
+        ) : null}
+
+        <section className="mx-auto max-w-7xl px-4 sm:px-6">
+          <div className="border-border/60 mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-4 border-y py-6 opacity-70">
+            {TRUST.map(({ icon: Icon, label }) => (
+              <span key={label} className="flex items-center gap-2 text-xs sm:text-sm">
+                <Icon className="size-4" strokeWidth={1.8} />
+                {label}
+              </span>
+            ))}
           </div>
         </section>
 
-        <section id="catalogo" className="mx-auto w-full max-w-6xl px-4 py-14">
-          <div className="space-y-14">
-            {ORDER.map((type) => {
-              const items = catalog.filter((product) => product.type === type);
-              if (items.length === 0) return null;
+        <Faq />
 
-              return (
-                <div key={type} className="space-y-5">
-                  <div className="flex items-end justify-between gap-4">
-                    <div>
-                      <h2 className="text-xl font-semibold tracking-tight">{GROUPS[type].title}</h2>
-                      <p className="text-muted-foreground text-sm">{GROUPS[type].description}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {items.map((product) => (
-                      <Card key={product.id} className="flex flex-col">
-                        <CardHeader>
-                          <CardTitle className="text-base">{product.name}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-1 flex-col justify-between gap-4">
-                          <p className="text-muted-foreground text-sm">{product.description}</p>
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-semibold">{priceLabel(product)}</span>
-                            <Link
-                              href={`/p/${product.slug}`}
-                              className={buttonVariants({ size: "sm" })}
-                            >
-                              Pedir
-                            </Link>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-
-            {catalog.length === 0 ? (
-              <p className="text-muted-foreground">
-                Ainda não há produtos publicados. Volta em breve.
-              </p>
-            ) : null}
+        <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
+          <div className="from-primary/10 to-background rounded-xl bg-gradient-to-br p-6 text-center sm:p-10">
+            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+              Não encontras o que procuras?
+            </h2>
+            <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
+              Diz-nos o que precisas no WhatsApp e montamos a solução.
+            </p>
+            <Link
+              href={
+                store.whatsapp
+                  ? whatsappLink(store.whatsapp, "Olá! Preciso de um serviço que não está no site.")
+                  : "/pesquisa"
+              }
+              className="text-foreground mt-4 inline-block text-sm font-medium underline underline-offset-4"
+            >
+              Falar com a equipa
+            </Link>
           </div>
         </section>
       </main>
 
       <SiteFooter store={store} />
+      <BottomNav whatsapp={store.whatsapp} />
     </>
   );
 }

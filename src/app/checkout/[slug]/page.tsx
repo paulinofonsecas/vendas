@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CheckoutForm } from "@/app/checkout/[slug]/checkout-form";
+import { BottomNav } from "@/components/store/bottom-nav";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getPublicSettings } from "@/lib/settings";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -53,7 +54,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
     <>
       <SiteHeader store={store} />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 pb-20 sm:pb-10">
         <Link href={`/p/${item.slug}`} className="text-muted-foreground text-sm hover:underline">
           ← {item.name}
         </Link>
@@ -79,6 +80,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ slug:
       </main>
 
       <SiteFooter store={store} />
+      <BottomNav whatsapp={store.whatsapp} />
     </>
   );
 }

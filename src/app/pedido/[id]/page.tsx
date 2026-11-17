@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ProofForm } from "@/app/pedido/[id]/proof-form";
+import { BottomNav } from "@/components/store/bottom-nav";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -54,7 +55,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     <>
       <SiteHeader store={store} />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 pb-20 sm:pb-10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-muted-foreground text-sm">Pedido</p>
@@ -197,6 +198,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
       </main>
 
       <SiteFooter store={store} />
+      <BottomNav whatsapp={store.whatsapp} />
     </>
   );
 }
