@@ -27,9 +27,9 @@ export function Shelf({
     <section className="mx-auto max-w-7xl overflow-hidden px-2 py-4 sm:px-6 sm:py-5">
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{title}</h2>
           {subtitle ? (
-            <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">{subtitle}</p>
+            <p className="text-muted-foreground mt-1 text-xs sm:text-sm">{subtitle}</p>
           ) : null}
         </div>
 

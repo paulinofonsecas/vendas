@@ -20,7 +20,7 @@ export function SiteHeader({ store }: { store: StoreSettings }) {
         <div className="flex h-16 items-center gap-3 sm:h-20 sm:gap-5">
           <Link
             href="/"
-            className="shrink-0 text-xl font-bold tracking-tight sm:text-2xl"
+            className="shrink-0 text-xl font-extrabold tracking-tight sm:text-2xl"
             aria-label={`${store.name} — início`}
           >
             {store.name}

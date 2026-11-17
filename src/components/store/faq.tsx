@@ -27,7 +27,7 @@ export function Faq() {
   return (
     <section className="mx-auto max-w-5xl px-2 py-6 sm:px-6 sm:py-20">
       <div className="mb-10 text-center">
-        <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">Perguntas frequentes</h2>
+        <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Perguntas frequentes</h2>
         <p className="text-muted-foreground mt-2 text-sm sm:text-base">
           Se ficar alguma dúvida, falamos por WhatsApp.
         </p>

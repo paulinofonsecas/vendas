@@ -57,7 +57,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
             <span className="text-foreground">{theme.plural}</span>
           </nav>
 
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{theme.plural}</h1>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{theme.plural}</h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {items.length === 0
               ? "Sem produtos nesta categoria por agora."

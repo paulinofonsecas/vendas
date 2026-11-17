@@ -58,11 +58,11 @@ export function ProductCard({
         </span>
       </div>
 
-      <p className="group-hover:text-primary mt-3 line-clamp-1 text-sm leading-tight font-semibold">
+      <p className="group-hover:text-primary mt-3 line-clamp-1 text-[15px] leading-snug font-semibold">
         {product.name}
       </p>
-      <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">{meta}</p>
-      <p className="mt-1.5 text-sm font-semibold">{price}</p>
+      <p className="text-muted-foreground mt-1 line-clamp-1 text-xs">{meta}</p>
+      <p className="mt-2 text-[15px] font-bold">{price}</p>
     </Link>
   );
 }

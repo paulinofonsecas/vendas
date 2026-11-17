@@ -124,7 +124,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 </span>
               </div>
 
-              <h1 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">
+              <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
                 {item.name}
               </h1>
               <p className="text-muted-foreground mt-1 text-sm">{productMeta(item)}</p>

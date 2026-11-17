@@ -22,10 +22,7 @@ const TRUST = [
   { icon: Timer, label: "Entrega no mesmo dia" },
 ];
 
-function buildBanners(
-  catalog: CatalogRow[],
-  rate: { sell: number } | null,
-): Banner[] {
+function buildBanners(catalog: CatalogRow[], rate: { sell: number } | null): Banner[] {
   const first = (type: ProductType) => catalog.find((product) => product.type === type);
 
   const banners: Banner[] = [];
@@ -38,7 +35,6 @@ function buildBanners(
       subtitle: "Netflix e outros serviços com garantia de substituição durante o período.",
       cta: "Ver perfis",
       href: "/categoria/profile",
-      gradient: "from-rose-600 via-rose-500 to-orange-400",
     });
   }
 
@@ -50,7 +46,6 @@ function buildBanners(
       subtitle: "Cotação fixada no momento do pedido, sem surpresas depois.",
       cta: "Ver cotação",
       href: `/p/${fx.slug}`,
-      gradient: "from-emerald-700 via-emerald-500 to-lime-400",
     });
   }
 
@@ -62,7 +57,6 @@ function buildBanners(
       subtitle: "Escolhe, deixa o WhatsApp e recebe a confirmação em minutos.",
       cta: "Ver serviço",
       href: `/p/${design.slug}`,
-      gradient: "from-violet-700 via-violet-500 to-fuchsia-400",
     });
   }
 
@@ -82,12 +76,18 @@ export default async function HomePage() {
   const usd = (rates ?? []).find((rate) => rate.base === "USD" && rate.quote === "AOA");
   const banners = buildBanners(catalog, usd ? { sell: Number(usd.sell) } : null);
 
+  const palette = catalog.length
+    ? catalog.map((product) => TYPE_META[product.type].gradient)
+    : TYPE_ORDER.map((type) => TYPE_META[type].gradient);
+
+  const tiles = Array.from({ length: 48 }, (_, i) => palette[i % palette.length]!);
+
   return (
     <>
       <SiteHeader store={store} />
 
       <main className="flex-1 pb-16 sm:pb-0">
-        <HeroCarousel banners={banners} />
+        <HeroCarousel banners={banners} tiles={tiles} />
 
         <div id="catalogo" className="pt-2">
           {TYPE_ORDER.map((type) => {
@@ -132,7 +132,7 @@ export default async function HomePage() {
 
         <section className="mx-auto max-w-7xl px-4 pb-12 sm:px-6">
           <div className="from-primary/10 to-background rounded-xl bg-gradient-to-br p-6 text-center sm:p-10">
-            <h2 className="text-xl font-semibold tracking-tight sm:text-2xl">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Não encontras o que procuras?
             </h2>
             <p className="text-muted-foreground mx-auto mt-2 max-w-md text-sm">
