@@ -1,20 +1,13 @@
-import { addInventoryAction, revokeInventoryAction } from "@/app/actions/admin";
-import { Badge } from "@/components/ui/badge";
+import { addInventoryAction } from "@/app/actions/admin";
+import { StockTable, type StockRow } from "@/app/admin/(painel)/estoque/stock-table";
+import { Field, SELECT_CLASS } from "@/components/admin/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_TEXT: Record<string, string> = {
-  available: "Disponível",
-  assigned: "Atribuído",
-  expired: "Expirado",
-  revoked: "Revogado",
-};
 
 export default async function AdminStockPage({
   searchParams,
@@ -30,128 +23,108 @@ export default async function AdminStockPage({
       .from("inventory_items")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(100),
+      .limit(300),
   ]);
 
-  const counts = new Map<string, number>();
+  const nameById = new Map((products ?? []).map((product) => [product.id, product.name]));
+
+  const rows: StockRow[] = (inventory ?? []).map((item) => ({
+    ...item,
+    productName: nameById.get(item.product_id) ?? "Produto removido",
+  }));
+
+  const available = new Map<string, number>();
   for (const item of inventory ?? []) {
     if (item.status !== "available") continue;
-    counts.set(item.product_id, (counts.get(item.product_id) ?? 0) + 1);
+    available.set(item.product_id, (available.get(item.product_id) ?? 0) + 1);
   }
 
-  const productName = new Map((products ?? []).map((product) => [product.id, product.name]));
+  const totalAvailable = [...available.values()].reduce((sum, value) => sum + value, 0);
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">Stock de perfis</h1>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Stock de perfis</h1>
+        <p className="text-muted-foreground mt-0.5 text-sm">
+          {totalAvailable} {totalAvailable === 1 ? "perfil disponível" : "perfis disponíveis"} para
+          entrega imediata
+        </p>
+      </div>
 
       {msg ? <p className="bg-muted rounded-md px-4 py-3 text-sm">{decodeURIComponent(msg)}</p> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Inventário</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(inventory ?? []).map((item) => (
-              <div
-                key={item.id}
-                className="border-border/60 flex flex-wrap items-center justify-between gap-2 border-b pb-2 text-sm last:border-0 last:pb-0"
-              >
-                <div>
-                  <p className="font-medium">{item.label}</p>
-                  <p className="text-muted-foreground text-xs">
-                    {productName.get(item.product_id) ?? "produto removido"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{STATUS_TEXT[item.status] ?? item.status}</Badge>
-                  {item.status === "available" ? (
-                    <form action={revokeInventoryAction}>
-                      <input type="hidden" name="id" value={item.id} />
-                      <Button type="submit" size="sm" variant="ghost" className="text-destructive">
-                        Revogar
-                      </Button>
-                    </form>
-                  ) : null}
-                </div>
-              </div>
-            ))}
-
-            {(inventory ?? []).length === 0 ? (
-              <p className="text-muted-foreground text-sm">Sem itens em stock.</p>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Disponibilidade</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              {(products ?? []).map((product) => (
-                <div key={product.id} className="flex justify-between">
-                  <span className="text-muted-foreground">{product.name}</span>
-                  <span className="font-medium">{counts.get(product.id) ?? 0}</span>
-                </div>
-              ))}
-              {(products ?? []).length === 0 ? (
-                <p className="text-muted-foreground">Cria primeiro um produto do tipo Perfil.</p>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Adicionar perfil</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form action={addInventoryAction} className="space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="productId">Produto</Label>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Adicionar perfil</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {(products ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              Cria primeiro um produto do tipo Perfil em{" "}
+              <span className="text-foreground font-medium">Produtos</span>.
+            </p>
+          ) : (
+            <form action={addInventoryAction} className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field name="productId" label="Produto">
                   <select
                     id="productId"
                     name="productId"
-                    className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                    className={SELECT_CLASS}
                     required
                   >
                     {(products ?? []).map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.name}
+                        {product.name} — {available.get(product.id) ?? 0} em stock
                       </option>
                     ))}
                   </select>
-                </div>
+                </Field>
 
-                <div className="space-y-2">
-                  <Label htmlFor="label">Etiqueta</Label>
+                <Field name="label" label="Etiqueta" hint="Como vais reconhecer este perfil na lista.">
                   <Input id="label" name="label" placeholder="Perfil #12" />
-                </div>
+                </Field>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="secret">Credenciais</Label>
-                  <Textarea
-                    id="secret"
-                    name="secret"
-                    rows={3}
-                    placeholder={"email:perfil@exemplo.com\npassword: xxxx\npin: 1234"}
-                    className="font-mono text-xs"
-                    required
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Field name="email" label="Email da conta">
+                  <Input id="email" name="email" autoComplete="off" placeholder="perfil@exemplo.com" />
+                </Field>
+
+                <Field name="password" label="Password">
+                  <Input
+                    id="password"
+                    name="password"
+                    autoComplete="new-password"
+                    className="font-mono"
                   />
-                  <p className="text-muted-foreground text-xs">
-                    Guardado com AES-256-GCM. Só aparece no detalhe do pedido entregue.
-                  </p>
-                </div>
+                </Field>
 
-                <Button type="submit" className="w-full">
-                  Adicionar
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                <Field name="pin" label="PIN do perfil" hint="Netflix usa 4 dígitos.">
+                  <Input id="pin" name="pin" inputMode="numeric" className="font-mono" />
+                </Field>
+              </div>
+
+              <Field name="notes" label="Notas (opcional)">
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  rows={2}
+                  placeholder="Ex: perfil 3 da conta principal, renovar a 12/12."
+                />
+              </Field>
+
+              <p className="text-muted-foreground text-xs">
+                As credenciais são cifradas com AES-256-GCM e só aparecem no detalhe do pedido.
+              </p>
+
+              <Button type="submit">Adicionar ao stock</Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
+
+      <StockTable products={products ?? []} items={rows} />
     </div>
   );
 }

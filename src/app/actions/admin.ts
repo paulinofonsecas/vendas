@@ -248,31 +248,35 @@ export async function cancelOrderAction(formData: FormData) {
 /* -------------------------------------------------------------------------- */
 
 function buildConfig(formData: FormData, type: ProductType): Record<string, Json> {
-  const base = str(formData.get("config_json"));
-
-  let config: Record<string, Json> = {};
-  if (base) {
-    try {
-      const parsed = JSON.parse(base);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        config = parsed as Record<string, Json>;
-      }
-    } catch {
-      config = {};
-    }
-  }
+  const config: Record<string, Json> = {};
 
   if (type === "profile") {
     config.duration_days = num(formData.get("duration_days"), 30);
     config.warranty_days = num(formData.get("warranty_days"), 7);
+    config.screens = num(formData.get("screens"), 1);
   }
+
   if (type === "fx") {
-    config.base = str(formData.get("base")) || "USD";
-    config.quote = str(formData.get("quote")) || "AOA";
+    config.base = (str(formData.get("base")) || "USD").toUpperCase();
+    config.quote = (str(formData.get("quote")) || "AOA").toUpperCase();
     config.min_amount = num(formData.get("min_amount"), 0);
   }
+
   if (type === "design") {
     config.delivery_hours = num(formData.get("delivery_hours"), 48);
+    config.revisions = num(formData.get("revisions"), 2);
+    const formats = str(formData.get("formats"));
+    if (formats) {
+      config.formats = formats
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+
+  if (type === "digital") {
+    config.delivery = str(formData.get("delivery")) || "link";
+    config.format = str(formData.get("format")) || "pdf";
   }
 
   return config;
@@ -285,10 +289,14 @@ export async function saveProductAction(formData: FormData) {
   const id = str(formData.get("id"));
   const type = str(formData.get("type")) as ProductType;
   const price = roundMoney(num(formData.get("price")));
+  const slug = str(formData.get("slug"))
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 
   const payload = {
     type,
-    slug: str(formData.get("slug")).toLowerCase(),
+    slug,
     name: str(formData.get("name")),
     description: str(formData.get("description")),
     price,
@@ -334,15 +342,20 @@ export async function addInventoryAction(formData: FormData) {
 
   const productId = str(formData.get("productId"));
   const label = str(formData.get("label"));
-  const secret = str(formData.get("secret"));
+  const email = str(formData.get("email"));
+  const password = str(formData.get("password"));
+  const pin = str(formData.get("pin"));
+  const notes = str(formData.get("notes"));
 
-  if (!productId || !secret) {
-    redirect("/admin/estoque?msg=Produto+e+credenciais+s%C3%A3o+obrigat%C3%B3rios.");
+  if (!productId || (!email && !password)) {
+    redirect("/admin/estoque?msg=Produto,+email+ou+password+s%C3%A3o+obrigat%C3%B3rios.");
   }
+
+  const secret = JSON.stringify({ email, password, pin, notes });
 
   const { error } = await supabase.from("inventory_items").insert({
     product_id: productId,
-    label: label || "Perfil",
+    label: label || email || "Perfil",
     secret_ciphertext: encryptSecret(secret),
   });
 
@@ -394,25 +407,55 @@ export async function saveFxRateAction(formData: FormData) {
   redirect("/admin/cambios?msg=C%C3%A2mbio+actualizado.");
 }
 
-export async function saveSettingsAction(formData: FormData) {
+export async function saveStoreSettingsAction(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
-  const key = str(formData.get("key"));
-  const raw = str(formData.get("value"));
+  const value: Json = {
+    name: str(formData.get("name")) || "Vendaz",
+    whatsapp: str(formData.get("whatsapp")).replace(/\D/g, ""),
+    email: str(formData.get("email")),
+    address: str(formData.get("address")),
+    hours: str(formData.get("hours")),
+    currency: "AOA",
+  };
 
-  let value: Json;
-  try {
-    value = JSON.parse(raw) as Json;
-  } catch {
-    redirect(`/admin/definicoes?msg=JSON+inv%C3%A1lido+em+${key}.`);
-  }
-
-  await supabase
+  const { error } = await supabase
     .from("settings")
-    .upsert({ key, value, is_public: true, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    .upsert({ key: "store", value, is_public: true, updated_at: new Date().toISOString() }, { onConflict: "key" });
 
-  revalidatePath("/admin/definicoes");
+  if (error) redirect("/admin/definicoes?msg=N%C3%A3o+foi+poss%C3%ADvel+guardar+a+loja.");
+
   revalidatePath("/");
-  redirect("/admin/definicoes?msg=Defini%C3%A7%C3%B5es+guardadas.");
+  revalidatePath("/admin/definicoes");
+  redirect("/admin/definicoes?msg=Loja+actualizada.");
+}
+
+export async function savePaymentSettingsAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const value: Json = {
+    transfer: {
+      enabled: formData.get("transfer_enabled") === "on",
+      bank: str(formData.get("transfer_bank")),
+      holder: str(formData.get("transfer_holder")),
+      iban: str(formData.get("transfer_iban")).toUpperCase(),
+      instructions: str(formData.get("transfer_instructions")),
+    },
+    cash: {
+      enabled: formData.get("cash_enabled") === "on",
+      instructions: str(formData.get("cash_instructions")),
+    },
+  };
+
+  const { error } = await supabase
+    .from("settings")
+    .upsert({ key: "payment", value, is_public: true, updated_at: new Date().toISOString() }, { onConflict: "key" });
+
+  if (error) redirect("/admin/definicoes?msg=N%C3%A3o+foi+poss%C3%ADvel+guardar+os+pagamentos.");
+
+  revalidatePath("/");
+  revalidatePath("/admin/definicoes");
+  redirect("/admin/definicoes?msg=Pagamentos+actualizados.");
 }

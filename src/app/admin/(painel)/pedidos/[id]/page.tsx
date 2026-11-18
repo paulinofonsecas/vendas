@@ -49,6 +49,27 @@ function payloadLines(payload: Json): { label: string; value: string }[] {
     }));
 }
 
+function secretFields(raw: string): { label: string; value: string }[] {
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const labels: Record<string, string> = {
+        email: "Email",
+        password: "Password",
+        pin: "PIN",
+        notes: "Notas",
+      };
+      const out = Object.entries(parsed as Record<string, unknown>)
+        .filter(([key, value]) => labels[key] && typeof value === "string" && value.trim() !== "")
+        .map(([key, value]) => ({ label: labels[key]!, value: String(value) }));
+      if (out.length > 0) return out;
+    }
+  } catch {
+    // credenciais antigas em texto simples
+  }
+  return [{ label: "Credenciais", value: raw }];
+}
+
 export default async function AdminOrderPage({
   params,
   searchParams,
@@ -213,17 +234,27 @@ export default async function AdminOrderPage({
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {(inventory ?? []).map((entry) => {
-                  let secret = "—";
+                  let raw = "";
                   try {
-                    secret = decryptSecret(entry.secret_ciphertext);
+                    raw = decryptSecret(entry.secret_ciphertext);
                   } catch {
-                    secret = "Erro ao decifrar";
+                    raw = "Não foi possível decifrar este segredo.";
                   }
+
                   return (
-                    <div key={entry.id} className="border-border/60 border-b pb-2 last:border-0">
+                    <div key={entry.id} className="border-border/60 border-b pb-3 last:border-0">
                       <p className="font-medium">{entry.label}</p>
-                      <p className="font-mono text-xs break-all whitespace-pre-wrap">{secret}</p>
-                      <p className="text-muted-foreground mt-1 text-xs">
+
+                      <dl className="bg-muted mt-2 space-y-1 rounded-md p-3 font-mono text-xs">
+                        {secretFields(raw).map((field) => (
+                          <div key={field.label} className="flex gap-2">
+                            <dt className="text-muted-foreground w-20 shrink-0">{field.label}</dt>
+                            <dd className="break-all select-all">{field.value}</dd>
+                          </div>
+                        ))}
+                      </dl>
+
+                      <p className="text-muted-foreground mt-1.5 text-xs">
                         Expira {formatDateTime(entry.expires_at)} · garantia até{" "}
                         {formatDateTime(entry.warranty_until)}
                       </p>
