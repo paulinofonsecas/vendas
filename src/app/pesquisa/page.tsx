@@ -29,12 +29,10 @@ export default async function SearchPage({
   const supabase = await createClient();
   const [{ store }, topId] = await Promise.all([getPublicSettings(), getTopProductId()]);
 
-  let query = supabase.from("catalog").select("*").order("sort", { ascending: true });
-  if (term) {
-    query = query.or(`name.ilike.%${term}%,description.ilike.%${term}%`);
-  }
+  const { data } = term
+    ? await supabase.rpc("search_catalog", { p_term: term, p_limit: 60 })
+    : await supabase.from("catalog").select("*").order("sort", { ascending: true });
 
-  const { data } = await query;
   const items = (data ?? []) as CatalogRow[];
 
   return (

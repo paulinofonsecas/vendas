@@ -1,4 +1,4 @@
-import { savePaymentSettingsAction, saveStoreSettingsAction } from "@/app/actions/admin";
+import { saveBannersAction, savePaymentSettingsAction, saveStoreSettingsAction } from "@/app/actions/admin";
 import { Field } from "@/components/admin/field";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ export default async function AdminSettingsPage({
   searchParams: Promise<{ msg?: string }>;
 }) {
   const { msg } = await searchParams;
-  const { store, payment } = await getPublicSettings();
+  const { store, payment, banners } = await getPublicSettings();
 
   return (
     <div className="space-y-6">
@@ -26,6 +26,66 @@ export default async function AdminSettingsPage({
       </div>
 
       {msg ? <p className="bg-muted rounded-md px-4 py-3 text-sm">{decodeURIComponent(msg)}</p> : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Carrossel da home</CardTitle>
+          <p className="text-muted-foreground text-sm">
+            Flyers de 1920×400. Deixa a imagem vazia para desactivar o slide. Sem título, o banner
+            inteiro fica clicável.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form action={saveBannersAction} className="space-y-4">
+            {[0, 1, 2, 3, 4].map((slot) => {
+              const banner = banners[slot];
+              const n = slot + 1;
+
+              return (
+                <div key={n} className="border-border/60 rounded-lg border p-3 sm:p-4">
+                  <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-wider uppercase">
+                    Slide {n}
+                  </p>
+
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="lg:col-span-2">
+                      <Field name={`banner_${n}_image`} label="Imagem (URL)">
+                        <Input
+                          id={`banner_${n}_image`}
+                          name={`banner_${n}_image`}
+                          defaultValue={banner?.image ?? ""}
+                          placeholder="https://…/banner.jpg"
+                        />
+                      </Field>
+                    </div>
+
+                    <Field name={`banner_${n}_title`} label="Título (opcional)">
+                      <Input
+                        id={`banner_${n}_title`}
+                        name={`banner_${n}_title`}
+                        defaultValue={banner?.title ?? ""}
+                      />
+                    </Field>
+
+                    <Field name={`banner_${n}_href`} label="Link">
+                      <Input
+                        id={`banner_${n}_href`}
+                        name={`banner_${n}_href`}
+                        defaultValue={banner?.href ?? ""}
+                        placeholder="/categoria/profile"
+                      />
+                    </Field>
+                  </div>
+                </div>
+              );
+            })}
+
+            <Button type="submit" className="w-full sm:w-auto">
+              Guardar carrossel
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

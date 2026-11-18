@@ -191,6 +191,7 @@ export type Database = {
     Functions: {
       top_product_id: { Args: { p_days?: number }; Returns: string | null };
       register_product_view: { Args: { p_product_id: string }; Returns: undefined };
+      search_catalog: { Args: { p_term: string; p_limit?: number }; Returns: CatalogRow[] };
     };
     Enums: {
       product_type: ProductType;

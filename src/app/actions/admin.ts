@@ -433,6 +433,38 @@ export async function saveStoreSettingsAction(formData: FormData) {
   redirect("/admin/definicoes?msg=Loja+actualizada.");
 }
 
+export async function saveBannersAction(formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const banners: Json[] = [];
+  for (let slot = 1; slot <= 5; slot++) {
+    const image = str(formData.get(`banner_${slot}_image`));
+    if (!image) continue;
+
+    banners.push({
+      image,
+      title: str(formData.get(`banner_${slot}_title`)),
+      subtitle: str(formData.get(`banner_${slot}_subtitle`)),
+      cta: str(formData.get(`banner_${slot}_cta`)),
+      href: str(formData.get(`banner_${slot}_href`)) || "/#catalogo",
+    });
+  }
+
+  const { error } = await supabase
+    .from("settings")
+    .upsert(
+      { key: "banners", value: banners, is_public: true, updated_at: new Date().toISOString() },
+      { onConflict: "key" },
+    );
+
+  if (error) redirect("/admin/definicoes?msg=N%C3%A3o+foi+poss%C3%ADvel+guardar+o+carrossel.");
+
+  revalidatePath("/");
+  revalidatePath("/admin/definicoes");
+  redirect("/admin/definicoes?msg=Carrossel+actualizado.");
+}
+
 export async function savePaymentSettingsAction(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();

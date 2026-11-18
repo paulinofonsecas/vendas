@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export function Shelf({
@@ -9,11 +9,13 @@ export function Shelf({
   subtitle,
   href,
   children,
+  autoScroll = false,
 }: {
   title: string;
   subtitle?: string;
   href?: string;
   children: ReactNode;
+  autoScroll?: boolean;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -22,6 +24,62 @@ export function Shelf({
     if (!track) return;
     track.scrollBy({ left: direction * track.clientWidth * 0.8, behavior: "smooth" });
   }
+
+  /**
+   * Movimento automático em vaivém: avança até ao fim, inverte, volta ao início.
+   * Pausa ao passar o rato, ao tocar ou ao navegar por teclado.
+   */
+  useEffect(() => {
+    if (!autoScroll) return;
+    const track = trackRef.current;
+    if (!track) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let frame = 0;
+    let last = performance.now();
+    let direction = 1;
+    let paused = false;
+
+    const pause = () => {
+      paused = true;
+    };
+    const resume = () => {
+      paused = false;
+    };
+
+    track.addEventListener("pointerenter", pause);
+    track.addEventListener("pointerleave", resume);
+    track.addEventListener("pointerdown", pause);
+    track.addEventListener("pointerup", resume);
+    track.addEventListener("focusin", pause);
+    track.addEventListener("focusout", resume);
+
+    const step = (now: number) => {
+      const delta = Math.min(now - last, 64);
+      last = now;
+
+      const max = track.scrollWidth - track.clientWidth;
+      if (!paused && max > 4) {
+        track.scrollLeft += direction * 0.045 * delta;
+        if (track.scrollLeft >= max - 1) direction = -1;
+        if (track.scrollLeft <= 1) direction = 1;
+      }
+
+      frame = requestAnimationFrame(step);
+    };
+
+    frame = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      track.removeEventListener("pointerenter", pause);
+      track.removeEventListener("pointerleave", resume);
+      track.removeEventListener("pointerdown", pause);
+      track.removeEventListener("pointerup", resume);
+      track.removeEventListener("focusin", pause);
+      track.removeEventListener("focusout", resume);
+    };
+  }, [autoScroll]);
 
   return (
     <section className="mx-auto max-w-7xl overflow-hidden px-2 py-4 sm:px-6 sm:py-5">

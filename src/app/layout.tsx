@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Inter } from "next/font/google";
 
+import { ProgressBar } from "@/components/progress-bar";
 import "./globals.css";
 
 const inter = Inter({
@@ -35,7 +36,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${geistMono.variable} dark h-full antialiased`}
       style={{ colorScheme: "dark" }}
     >
-      <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
+      <body className="bg-background text-foreground flex min-h-full flex-col">
+        <ProgressBar />
+        {children}
+      </body>
     </html>
   );
 }

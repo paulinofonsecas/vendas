@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { Search } from "lucide-react";
 
+import { SearchBox } from "@/components/store/search-box";
 import { WhatsAppIcon } from "@/components/whatsapp-icon";
 import { TYPE_META, TYPE_ORDER } from "@/lib/catalog";
 import { whatsappLink } from "@/lib/money";
 import type { StoreSettings } from "@/lib/settings";
-
-const SEARCH_INPUT =
-  "border-border bg-muted/60 placeholder:text-muted-foreground/80 hover:bg-muted focus:border-foreground/25 focus:bg-background h-12 w-full rounded-full border text-base outline-none transition focus:ring-4 focus:ring-foreground/5";
 
 export function SiteHeader({ store }: { store: StoreSettings }) {
   const wa = store.whatsapp
@@ -17,7 +14,7 @@ export function SiteHeader({ store }: { store: StoreSettings }) {
   return (
     <header className="border-border/70 bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
       <div className="mx-auto w-full max-w-7xl px-3 sm:px-6">
-        <div className="flex h-16 items-center gap-3 sm:h-20 sm:gap-5">
+        <div className="flex h-16 items-center justify-between gap-3 sm:h-20 sm:gap-5">
           <Link
             href="/"
             className="shrink-0 text-xl font-extrabold tracking-tight sm:text-2xl"
@@ -26,60 +23,24 @@ export function SiteHeader({ store }: { store: StoreSettings }) {
             {store.name}
           </Link>
 
-          <form action="/pesquisa" role="search" className="relative hidden flex-1 md:block">
-            <Search
-              aria-hidden
-              className="text-muted-foreground pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2"
-            />
-            <input
-              name="q"
-              type="search"
-              placeholder="O que procuras? Perfis, câmbio, flyers…"
-              aria-label="Pesquisar produtos"
-              className={`${SEARCH_INPUT} pr-32 pl-12`}
-            />
-            <button
-              type="submit"
-              className="bg-foreground text-background absolute top-1/2 right-1.5 -translate-y-1/2 rounded-full px-5 py-2 text-sm font-semibold transition hover:opacity-90"
-            >
-              Pesquisar
-            </button>
-          </form>
-
-          <Link
-            href="/pesquisa"
-            aria-label="Pesquisar"
-            className="border-border ml-auto rounded-full border p-2.5 md:hidden"
-          >
-            <Search className="size-5" />
-          </Link>
+          <SearchBox className="hidden flex-1 md:block" />
 
           {wa ? (
             <a
               href={wa}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#25D366] px-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1fb457] sm:px-5"
+              className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full bg-[#25D366] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1fb457] sm:px-5"
             >
               <WhatsAppIcon className="size-5" />
-              <span className="hidden sm:inline">WhatsApp</span>
+              <span>Conversar</span>
             </a>
           ) : null}
         </div>
 
-        <form action="/pesquisa" role="search" className="relative pb-3 md:hidden">
-          <Search
-            aria-hidden
-            className="text-muted-foreground pointer-events-none absolute top-[22px] left-4 size-5 -translate-y-1/2"
-          />
-          <input
-            name="q"
-            type="search"
-            placeholder="O que procuras hoje?"
-            aria-label="Pesquisar produtos"
-            className={`${SEARCH_INPUT} pl-12`}
-          />
-        </form>
+        <div className="pb-3 md:hidden">
+          <SearchBox />
+        </div>
 
         <nav className="hidden items-center gap-1 overflow-x-auto pb-2.5 md:flex">
           {TYPE_ORDER.map((type) => (

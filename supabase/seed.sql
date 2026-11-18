@@ -12,6 +12,17 @@ insert into public.settings (key, value, is_public) values
   ('payment', '{"transfer":{"enabled":true,"bank":"BAI","holder":"Vendaz Lda","iban":"AO06 0000 0000 0000 0000 0","instructions":"Envia o comprovativo na página do pedido."},"cash":{"enabled":true,"instructions":"Pagamento no acto da entrega, em Luanda."}}'::jsonb, true)
 on conflict (key) do nothing;
 
+-- carrossel da home: flyers 1920x400 (substituir pelas artes reais em Definições)
+insert into public.settings (key, value, is_public) values
+  ('banners', '[
+    {"image":"https://picsum.photos/seed/banner1/1920/400","title":"","subtitle":"","cta":"","href":"/categoria/profile"},
+    {"image":"https://picsum.photos/seed/banner2/1920/400","title":"","subtitle":"","cta":"","href":"/categoria/fx"},
+    {"image":"https://picsum.photos/seed/banner3/1920/400","title":"","subtitle":"","cta":"","href":"/categoria/design"},
+    {"image":"https://picsum.photos/seed/banner4/1920/400","title":"","subtitle":"","cta":"","href":"/categoria/digital"},
+    {"image":"https://picsum.photos/seed/banner5/1920/400","title":"","subtitle":"","cta":"","href":"/#catalogo"}
+  ]'::jsonb, true)
+on conflict (key) do nothing;
+
 -- ---------------------------------------------------------------------------
 -- câmbios
 -- ---------------------------------------------------------------------------

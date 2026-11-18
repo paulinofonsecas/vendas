@@ -67,16 +67,27 @@ function buildBanners(catalog: CatalogRow[], rate: { sell: number } | null): Ban
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: products }, { data: rates }, { store }, topId] = await Promise.all([
-    supabase.from("catalog").select("*").order("sort", { ascending: true }),
-    supabase.from("fx_rates").select("base, quote, sell").eq("active", true),
-    getPublicSettings(),
-    getTopProductId(),
-  ]);
+  const [{ data: products }, { data: rates }, { store, banners: bannerSettings }, topId] =
+    await Promise.all([
+      supabase.from("catalog").select("*").order("sort", { ascending: true }),
+      supabase.from("fx_rates").select("base, quote, sell").eq("active", true),
+      getPublicSettings(),
+      getTopProductId(),
+    ]);
 
   const catalog = (products ?? []) as CatalogRow[];
   const usd = (rates ?? []).find((rate) => rate.base === "USD" && rate.quote === "AOA");
-  const banners = buildBanners(catalog, usd ? { sell: Number(usd.sell) } : null);
+
+  // Flyers carregados em Definições têm prioridade; sem eles, banners gerados do catálogo.
+  const banners: Banner[] = bannerSettings.length
+    ? bannerSettings.map((banner) => ({
+        title: banner.title,
+        subtitle: banner.subtitle,
+        cta: banner.cta,
+        href: banner.href,
+        image: banner.image,
+      }))
+    : buildBanners(catalog, usd ? { sell: Number(usd.sell) } : null);
 
   const palette = catalog.length
     ? catalog.map((product) => TYPE_META[product.type].gradient)
@@ -100,6 +111,7 @@ export default async function HomePage() {
             <Shelf
               title="Ofertas"
               subtitle={`${deals.length} ${deals.length === 1 ? "produto com desconto" : "produtos com desconto"} · por tempo limitado`}
+              autoScroll
             >
               {deals.map((product) => (
                 <ProductCard key={product.id} product={product} hot={product.id === topId} />
