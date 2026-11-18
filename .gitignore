@@ -46,3 +46,5 @@ supabase/.temp/
 # manter o exemplo versionado
 !.env.example
 
+.vercel
+.env*
