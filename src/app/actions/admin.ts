@@ -289,6 +289,7 @@ export async function saveProductAction(formData: FormData) {
   const id = str(formData.get("id"));
   const type = str(formData.get("type")) as ProductType;
   const price = roundMoney(num(formData.get("price")));
+  const compareAt = roundMoney(num(formData.get("compare_at_price")));
   const slug = str(formData.get("slug"))
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
@@ -300,6 +301,7 @@ export async function saveProductAction(formData: FormData) {
     name: str(formData.get("name")),
     description: str(formData.get("description")),
     price,
+    compare_at_price: compareAt > price ? compareAt : null,
     active: formData.get("active") === "on" || formData.get("active") === "true",
     sort: num(formData.get("sort")),
     config: buildConfig(formData, type),

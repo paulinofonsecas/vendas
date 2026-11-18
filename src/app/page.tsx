@@ -8,7 +8,8 @@ import { HeroCarousel, type Banner } from "@/components/store/hero-carousel";
 import { Shelf } from "@/components/store/shelf";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { formatAOA, whatsappLink } from "@/lib/money";
-import { TYPE_META, TYPE_ORDER } from "@/lib/catalog";
+import { TYPE_META, TYPE_ORDER, discountPercent } from "@/lib/catalog";
+import { getTopProductId } from "@/lib/stats";
 import { getPublicSettings } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow, ProductType } from "@/types/database";
@@ -66,10 +67,11 @@ function buildBanners(catalog: CatalogRow[], rate: { sell: number } | null): Ban
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: products }, { data: rates }, { store }] = await Promise.all([
+  const [{ data: products }, { data: rates }, { store }, topId] = await Promise.all([
     supabase.from("catalog").select("*").order("sort", { ascending: true }),
     supabase.from("fx_rates").select("base, quote, sell").eq("active", true),
     getPublicSettings(),
+    getTopProductId(),
   ]);
 
   const catalog = (products ?? []) as CatalogRow[];
@@ -82,6 +84,10 @@ export default async function HomePage() {
 
   const tiles = Array.from({ length: 48 }, (_, i) => palette[i % palette.length]!);
 
+  const deals = catalog
+    .filter((product) => discountPercent(product) !== null)
+    .sort((a, b) => (discountPercent(b) ?? 0) - (discountPercent(a) ?? 0));
+
   return (
     <>
       <SiteHeader store={store} />
@@ -90,6 +96,17 @@ export default async function HomePage() {
         <HeroCarousel banners={banners} tiles={tiles} />
 
         <div id="catalogo" className="pt-2">
+          {deals.length > 0 ? (
+            <Shelf
+              title="Ofertas"
+              subtitle={`${deals.length} ${deals.length === 1 ? "produto com desconto" : "produtos com desconto"} · por tempo limitado`}
+            >
+              {deals.map((product) => (
+                <ProductCard key={product.id} product={product} hot={product.id === topId} />
+              ))}
+            </Shelf>
+          ) : null}
+
           {TYPE_ORDER.map((type) => {
             const items = catalog.filter((product) => product.type === type);
             if (items.length === 0) return null;
@@ -104,7 +121,7 @@ export default async function HomePage() {
                 href={`/categoria/${type}`}
               >
                 {items.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={product} hot={product.id === topId} />
                 ))}
               </Shelf>
             );

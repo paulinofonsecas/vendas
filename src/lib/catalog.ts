@@ -39,7 +39,7 @@ function config(product: CatalogRow): Record<string, Json | undefined> {
     : {};
 }
 
-/** Linha de meta do cartão, derivada do tipo — equivalente ao "autor · rating" deles. */
+/** Linha de meta do cartão, derivada do tipo. */
 export function productMeta(product: CatalogRow): string {
   const cfg = config(product);
 
@@ -67,16 +67,56 @@ export function productMeta(product: CatalogRow): string {
   }
 }
 
-export function productBadge(product: CatalogRow): string | null {
+/** Desconto em percentagem, quando existe preço anterior. */
+export function discountPercent(product: CatalogRow): number | null {
+  const before = Number(product.compare_at_price ?? 0);
+  const now = Number(product.price ?? 0);
+  if (!before || before <= now || now <= 0) return null;
+  return Math.round(((before - now) / before) * 100);
+}
+
+function isFresh(product: CatalogRow, days = 7): boolean {
+  const created = new Date(product.created_at).getTime();
+  if (!Number.isFinite(created)) return false;
+  return Date.now() - created < days * 86_400_000;
+}
+
+export type AlertTone = "sale" | "hot" | "urgent" | "new" | "info";
+
+export type ProductAlert = { label: string; tone: AlertTone };
+
+/**
+ * Etiqueta de alerta do cartão, por prioridade:
+ * desconto → mais acessado → últimas unidades → novidade → detalhe do tipo.
+ */
+export function productAlert(
+  product: CatalogRow,
+  options: { hot?: boolean; stock?: number | null } = {},
+): ProductAlert | null {
+  const discount = discountPercent(product);
+  if (discount) return { label: `-${discount}%`, tone: "sale" };
+
+  if (options.hot) return { label: "🔥 Mais acessado", tone: "hot" };
+
+  if (typeof options.stock === "number" && options.stock > 0 && options.stock <= 3) {
+    return { label: `Últimas ${options.stock}`, tone: "urgent" };
+  }
+
+  if (isFresh(product)) return { label: "Novo", tone: "new" };
+
   const cfg = config(product);
   if (product.type === "profile" && cfg.warranty_days) {
-    return `Garantia ${cfg.warranty_days}d`;
-  }
-  if (product.type === "fx" && cfg.min_amount) {
-    return `Mín. ${cfg.min_amount}`;
+    return { label: `Garantia ${cfg.warranty_days}d`, tone: "info" };
   }
   if (product.type === "design" && cfg.revisions) {
-    return `${cfg.revisions} revisões`;
+    return { label: `${cfg.revisions} revisões`, tone: "info" };
   }
+  if (product.type === "fx" && cfg.min_amount) {
+    return { label: `Mín. ${cfg.min_amount}`, tone: "info" };
+  }
+  if (product.type === "digital") {
+    return { label: "Acesso imediato", tone: "info" };
+  }
+
   return null;
 }

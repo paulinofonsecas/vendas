@@ -6,6 +6,7 @@ import { ProductCard } from "@/components/store/product-card";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { TYPE_META, TYPE_ORDER } from "@/lib/catalog";
 import { getPublicSettings } from "@/lib/settings";
+import { getTopProductId } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow } from "@/types/database";
 
@@ -26,7 +27,7 @@ export default async function SearchPage({
   const term = sanitize(q ?? "");
 
   const supabase = await createClient();
-  const { store } = await getPublicSettings();
+  const [{ store }, topId] = await Promise.all([getPublicSettings(), getTopProductId()]);
 
   let query = supabase.from("catalog").select("*").order("sort", { ascending: true });
   if (term) {
@@ -67,7 +68,12 @@ export default async function SearchPage({
           {items.length > 0 ? (
             <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
               {items.map((product) => (
-                <ProductCard key={product.id} product={product} variant="grid" />
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  variant="grid"
+                  hot={product.id === topId}
+                />
               ))}
             </div>
           ) : term ? (

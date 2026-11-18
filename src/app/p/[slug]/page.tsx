@@ -5,12 +5,14 @@ import { ArrowLeftRight, Check, FileDown, Palette, Play, ShieldCheck } from "luc
 
 import { BottomNav } from "@/components/store/bottom-nav";
 import { ProductCard } from "@/components/store/product-card";
+import { ViewTracker } from "@/components/store/view-tracker";
 import { Shelf } from "@/components/store/shelf";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { buttonVariants } from "@/components/ui/button";
-import { TYPE_META, productMeta } from "@/lib/catalog";
+import { TYPE_META, discountPercent, productMeta } from "@/lib/catalog";
 import { formatAOA } from "@/lib/money";
 import { getPublicSettings } from "@/lib/settings";
+import { getTopProductId } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow, Json, ProductType } from "@/types/database";
 
@@ -66,9 +68,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params;
   const supabase = await createClient();
 
-  const [{ data: product }, { store }] = await Promise.all([
+  const [{ data: product }, { store }, topId] = await Promise.all([
     supabase.from("catalog").select("*").eq("slug", slug).maybeSingle(),
     getPublicSettings(),
+    getTopProductId(),
   ]);
 
   if (!product) notFound();
@@ -76,6 +79,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const item = product as CatalogRow;
   const theme = TYPE_META[item.type];
   const Icon = ICONS[item.type];
+  const hot = topId === item.id;
+  const discount = discountPercent(item);
 
   const { data: relatedData } = await supabase
     .from("catalog")
@@ -92,6 +97,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <SiteHeader store={store} />
 
       <main className="flex-1 pb-20 sm:pb-0">
+        <ViewTracker productId={item.id} />
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
           <nav className="text-muted-foreground mb-4 flex items-center gap-1.5 text-xs">
             <Link href="/" className="hover:underline">
@@ -126,8 +132,23 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
               <h1 className="mt-5 text-3xl font-bold tracking-tight sm:text-4xl">
                 {item.name}
+                {hot ? <span title="Serviço mais acessado"> 🔥</span> : null}
               </h1>
-              <p className="text-muted-foreground mt-1 text-sm">{productMeta(item)}</p>
+
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <p className="text-muted-foreground text-sm">{productMeta(item)}</p>
+                {hot ? (
+                  <span className="rounded-md bg-orange-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    Mais acessado
+                  </span>
+                ) : null}
+                {discount ? (
+                  <span className="rounded-md bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    -{discount}%
+                  </span>
+                ) : null}
+              </div>
+
               <p className="mt-4 text-sm leading-relaxed sm:text-base">{item.description}</p>
 
               <ul className="mt-6 space-y-2.5">
@@ -151,9 +172,22 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="lg:sticky lg:top-32 lg:h-fit">
               <div className="border-border bg-card rounded-xl border p-5">
                 <p className="text-muted-foreground text-xs">Preço</p>
-                <p className="mt-0.5 text-3xl font-semibold tracking-tight">
-                  {item.type === "fx" ? "Calculado no checkout" : formatAOA(item.price)}
+                <p className="mt-0.5 flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold tracking-tight">
+                    {item.type === "fx" ? "Calculado no checkout" : formatAOA(item.price)}
+                  </span>
+                  {discount ? (
+                    <span className="text-muted-foreground text-sm line-through">
+                      {formatAOA(item.compare_at_price)}
+                    </span>
+                  ) : null}
                 </p>
+                {discount ? (
+                  <p className="mt-1 text-xs font-medium text-rose-400">
+                    Poupes {formatAOA(Number(item.compare_at_price) - Number(item.price))} nesta
+                    compra
+                  </p>
+                ) : null}
 
                 <Link
                   href={`/checkout/${item.slug}`}
@@ -178,7 +212,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             href={`/categoria/${item.type}`}
           >
             {related.map((other) => (
-              <ProductCard key={other.id} product={other} />
+              <ProductCard key={other.id} product={other} hot={other.id === topId} />
             ))}
           </Shelf>
         ) : null}

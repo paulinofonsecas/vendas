@@ -7,6 +7,7 @@ import { ProductCard } from "@/components/store/product-card";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { TYPE_META, TYPE_ORDER } from "@/lib/catalog";
 import { getPublicSettings } from "@/lib/settings";
+import { getTopProductId } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow, ProductType } from "@/types/database";
 
@@ -31,13 +32,14 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
   if (!isType(type)) notFound();
 
   const supabase = await createClient();
-  const [{ data: products }, { store }] = await Promise.all([
+  const [{ data: products }, { store }, topId] = await Promise.all([
     supabase
       .from("catalog")
       .select("*")
       .eq("type", type)
       .order("sort", { ascending: true }),
     getPublicSettings(),
+    getTopProductId(),
   ]);
 
   const items = (products ?? []) as CatalogRow[];
@@ -66,7 +68,12 @@ export default async function CategoryPage({ params }: { params: Promise<{ type:
 
           <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 lg:grid-cols-4">
             {items.map((product) => (
-              <ProductCard key={product.id} product={product} variant="grid" />
+              <ProductCard
+                key={product.id}
+                product={product}
+                variant="grid"
+                hot={product.id === topId}
+              />
             ))}
           </div>
 

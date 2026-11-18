@@ -72,11 +72,11 @@ export function ProductForm({ product }: { product?: ProductRow }) {
           />
         </Field>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Field
             name="price"
             label="Preço (AOA)"
-            hint={type === "fx" ? "No câmbio o preço é calculado pela taxa; deixa 0." : undefined}
+            hint={type === "fx" ? "No câmbio o preço vem da taxa; deixa 0." : undefined}
           >
             <Input
               id="price"
@@ -85,6 +85,21 @@ export function ProductForm({ product }: { product?: ProductRow }) {
               step="0.01"
               min="0"
               defaultValue={product?.price ?? 0}
+            />
+          </Field>
+
+          <Field
+            name="compare_at_price"
+            label="Preço antes (opcional)"
+            hint="Preenche para mostrar o desconto e criar a prateleira Ofertas."
+          >
+            <Input
+              id="compare_at_price"
+              name="compare_at_price"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={product?.compare_at_price ?? ""}
             />
           </Field>
 

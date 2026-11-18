@@ -26,6 +26,7 @@ export type ProductRow = {
   name: string;
   description: string;
   price: number;
+  compare_at_price: number | null;
   currency: string;
   config: Json;
   active: boolean;
@@ -148,8 +149,24 @@ export type AdminRow = {
 
 export type CatalogRow = Pick<
   ProductRow,
-  "id" | "type" | "slug" | "name" | "description" | "price" | "currency" | "config" | "sort"
+  | "id"
+  | "type"
+  | "slug"
+  | "name"
+  | "description"
+  | "price"
+  | "compare_at_price"
+  | "currency"
+  | "config"
+  | "sort"
+  | "created_at"
 >;
+
+export type ProductViewRow = {
+  product_id: string;
+  viewed_on: string;
+  views: number;
+};
 
 export type Database = {
   public: {
@@ -166,11 +183,15 @@ export type Database = {
       settings: Table<SettingRow>;
       admins: Table<AdminRow>;
       rate_limits: Table<{ id: string; hits: number; window_start: string }>;
+      product_views: Table<ProductViewRow>;
     };
     Views: {
       catalog: { Row: CatalogRow; Relationships: [] };
     };
-    Functions: { [key: string]: never };
+    Functions: {
+      top_product_id: { Args: { p_days?: number }; Returns: string | null };
+      register_product_view: { Args: { p_product_id: string }; Returns: undefined };
+    };
     Enums: {
       product_type: ProductType;
       order_status: OrderStatus;
