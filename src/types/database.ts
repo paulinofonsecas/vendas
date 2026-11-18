@@ -147,6 +147,42 @@ export type AdminRow = {
   created_at: string;
 };
 
+export type BannerRow = {
+  id: string;
+  image: string;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  sort: number;
+  active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AnalyticsEventRow = {
+  id: number;
+  name: string;
+  path: string;
+  product_id: string | null;
+  session_id: string | null;
+  meta: Json;
+  created_at: string;
+};
+
+export type AuditLogRow = {
+  id: number;
+  actor: string;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  diff: Json;
+  created_at: string;
+};
+
 export type CatalogRow = Pick<
   ProductRow,
   | "id"
@@ -184,6 +220,9 @@ export type Database = {
       admins: Table<AdminRow>;
       rate_limits: Table<{ id: string; hits: number; window_start: string }>;
       product_views: Table<ProductViewRow>;
+      banners: Table<BannerRow>;
+      analytics_events: Table<AnalyticsEventRow>;
+      audit_log: Table<AuditLogRow>;
     };
     Views: {
       catalog: { Row: CatalogRow; Relationships: [] };

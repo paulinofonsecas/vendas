@@ -67,20 +67,25 @@ function buildBanners(catalog: CatalogRow[], rate: { sell: number } | null): Ban
 export default async function HomePage() {
   const supabase = await createClient();
 
-  const [{ data: products }, { data: rates }, { store, banners: bannerSettings }, topId] =
+  const [{ data: products }, { data: rates }, { store }, { data: bannerRows }, topId] =
     await Promise.all([
       supabase.from("catalog").select("*").order("sort", { ascending: true }),
       supabase.from("fx_rates").select("base, quote, sell").eq("active", true),
       getPublicSettings(),
+      supabase
+        .from("banners")
+        .select("image, title, subtitle, cta, href")
+        .order("sort", { ascending: true }),
       getTopProductId(),
     ]);
 
   const catalog = (products ?? []) as CatalogRow[];
   const usd = (rates ?? []).find((rate) => rate.base === "USD" && rate.quote === "AOA");
 
-  // Flyers carregados em Definições têm prioridade; sem eles, banners gerados do catálogo.
-  const banners: Banner[] = bannerSettings.length
-    ? bannerSettings.map((banner) => ({
+  // Banners geridos no admin têm prioridade; sem eles, banners gerados do catálogo.
+  const rows = bannerRows ?? [];
+  const banners: Banner[] = rows.length
+    ? rows.map((banner) => ({
         title: banner.title,
         subtitle: banner.subtitle,
         cta: banner.cta,

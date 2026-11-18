@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireStaff } from "@/lib/auth";
+import { EVENT_CATALOG, type EventName } from "@/lib/analytics";
 import { encryptSecret } from "@/lib/crypto";
 import { roundMoney, toNumber } from "@/lib/money";
 import { createClient } from "@/lib/supabase/server";
@@ -433,36 +434,107 @@ export async function saveStoreSettingsAction(formData: FormData) {
   redirect("/admin/definicoes?msg=Loja+actualizada.");
 }
 
-export async function saveBannersAction(formData: FormData) {
+export async function saveBannerAction(formData: FormData) {
+  const staff = await requireStaff();
+  const supabase = await createClient();
+
+  const id = str(formData.get("id"));
+  const payload = {
+    image: str(formData.get("image")),
+    title: str(formData.get("title")),
+    subtitle: str(formData.get("subtitle")),
+    cta: str(formData.get("cta")),
+    href: str(formData.get("href")) || "/#catalogo",
+    sort: num(formData.get("sort")),
+    active: formData.get("active") === "on",
+    starts_at: str(formData.get("starts_at")) || null,
+    ends_at: str(formData.get("ends_at")) || null,
+  };
+
+  if (!payload.image) {
+    redirect("/admin/banners?msg=Indica+a+imagem+do+banner.");
+  }
+
+  if (id) {
+    await supabase.from("banners").update(payload).eq("id", id);
+  } else {
+    await supabase.from("banners").insert({ ...payload, created_by: staff.email });
+  }
+
+  await supabase.from("audit_log").insert({
+    actor: staff.email,
+    action: id ? "banner.update" : "banner.create",
+    entity: "banner",
+    entity_id: id || null,
+    diff: payload,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+  redirect("/admin/banners?msg=Banner+guardado.");
+}
+
+export async function toggleBannerAction(formData: FormData) {
+  const staff = await requireStaff();
+  const supabase = await createClient();
+  const id = str(formData.get("id"));
+  const active = str(formData.get("active")) === "true";
+
+  await supabase.from("banners").update({ active: !active }).eq("id", id);
+  await supabase.from("audit_log").insert({
+    actor: staff.email,
+    action: "banner.toggle",
+    entity: "banner",
+    entity_id: id,
+    diff: { active: !active },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+}
+
+export async function deleteBannerAction(formData: FormData) {
+  const staff = await requireStaff();
+  const supabase = await createClient();
+  const id = str(formData.get("id"));
+
+  await supabase.from("banners").delete().eq("id", id);
+  await supabase.from("audit_log").insert({
+    actor: staff.email,
+    action: "banner.delete",
+    entity: "banner",
+    entity_id: id,
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/banners");
+  redirect("/admin/banners?msg=Banner+removido.");
+}
+
+export async function saveAnalyticsConfigAction(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
 
-  const banners: Json[] = [];
-  for (let slot = 1; slot <= 5; slot++) {
-    const image = str(formData.get(`banner_${slot}_image`));
-    if (!image) continue;
-
-    banners.push({
-      image,
-      title: str(formData.get(`banner_${slot}_title`)),
-      subtitle: str(formData.get(`banner_${slot}_subtitle`)),
-      cta: str(formData.get(`banner_${slot}_cta`)),
-      href: str(formData.get(`banner_${slot}_href`)) || "/#catalogo",
-    });
+  const events: Record<string, { label: string; enabled: boolean }> = {};
+  for (const key of Object.keys(EVENT_CATALOG)) {
+    events[key] = {
+      label: EVENT_CATALOG[key as EventName],
+      enabled: formData.get(`event_${key}`) === "on",
+    };
   }
 
-  const { error } = await supabase
+  const value: Json = { enabled: formData.get("analytics_enabled") === "on", events };
+
+  await supabase
     .from("settings")
     .upsert(
-      { key: "banners", value: banners, is_public: true, updated_at: new Date().toISOString() },
+      { key: "analytics", value, is_public: false, updated_at: new Date().toISOString() },
       { onConflict: "key" },
     );
 
-  if (error) redirect("/admin/definicoes?msg=N%C3%A3o+foi+poss%C3%ADvel+guardar+o+carrossel.");
-
-  revalidatePath("/");
-  revalidatePath("/admin/definicoes");
-  redirect("/admin/definicoes?msg=Carrossel+actualizado.");
+  revalidateTag("analytics", "max");
+  revalidatePath("/admin/telemetria");
+  redirect("/admin/telemetria?msg=Configura%C3%A7%C3%A3o+guardada.");
 }
 
 export async function savePaymentSettingsAction(formData: FormData) {

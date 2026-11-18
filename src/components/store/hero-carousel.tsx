@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
+import { track } from "@/lib/track";
+
 export type Banner = {
   title: string;
   subtitle: string;
@@ -114,7 +116,11 @@ export function HeroCarousel({ banners, tiles }: { banners: Banner[]; tiles: str
               }`}
             >
               {!hasText && banner.href ? (
-                <Link href={banner.href} aria-label={`Destaque ${i + 1}`} className="block size-full">
+                <Link
+                  href={banner.href}
+                  onClick={() => track("banner_click", { meta: { href: banner.href } })}
+                  className="block size-full"
+                >
                   {slide}
                 </Link>
               ) : (

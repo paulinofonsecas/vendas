@@ -5,13 +5,16 @@ import { ArrowLeftRight, Check, FileDown, Palette, Play, ShieldCheck } from "luc
 
 import { BottomNav } from "@/components/store/bottom-nav";
 import { ProductCard } from "@/components/store/product-card";
+import { ShareButtons } from "@/components/store/share-buttons";
 import { ViewTracker } from "@/components/store/view-tracker";
 import { Shelf } from "@/components/store/shelf";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { buttonVariants } from "@/components/ui/button";
 import { TYPE_META, discountPercent, productMeta } from "@/lib/catalog";
 import { formatAOA } from "@/lib/money";
+import { ogImageUrl, productJsonLd, shareText } from "@/lib/seo";
 import { getPublicSettings } from "@/lib/settings";
+import { absoluteUrl } from "@/lib/site";
 import { getTopProductId } from "@/lib/stats";
 import { createClient } from "@/lib/supabase/server";
 import type { CatalogRow, Json, ProductType } from "@/types/database";
@@ -58,10 +61,46 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const supabase = await createClient();
-  const { data } = await supabase.from("catalog").select("name, description").eq("slug", slug).maybeSingle();
-  return data
-    ? { title: data.name, description: data.description }
-    : { title: "Produto não encontrado" };
+  const { data } = await supabase
+    .from("catalog")
+    .select("name, description, price, currency, type")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!data) return { title: "Produto não encontrado", robots: { index: false } };
+
+  const url = absoluteUrl(`/p/${slug}`);
+  const description =
+    data.description?.trim().slice(0, 160) ||
+    `${data.name} na Vendaz. Pagamento em AOA, confirmação por WhatsApp.`;
+
+  return {
+    title: data.name,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      url,
+      siteName: "Vendaz",
+      locale: "pt_AO",
+      title: data.name,
+      description,
+      images: [
+        {
+          url: ogImageUrl(slug),
+          width: 1200,
+          height: 630,
+          alt: data.name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: data.name,
+      description,
+      images: [ogImageUrl(slug)],
+    },
+  };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -81,6 +120,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const Icon = ICONS[item.type];
   const hot = topId === item.id;
   const discount = discountPercent(item);
+  const url = absoluteUrl(`/p/${item.slug}`);
+  const priceLabel =
+    item.type === "fx" ? "taxa do dia" : formatAOA(item.price);
 
   const { data: relatedData } = await supabase
     .from("catalog")
@@ -97,6 +139,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       <SiteHeader store={store} />
 
       <main className="flex-1 pb-20 sm:pb-0">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd(item, url)) }}
+        />
         <ViewTracker productId={item.id} />
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
           <nav className="text-muted-foreground mb-4 flex items-center gap-1.5 text-xs">
@@ -201,6 +247,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   <li>• Confirmação por WhatsApp</li>
                   <li>• Dados de pagamento no checkout</li>
                 </ul>
+              </div>
+
+              <div className="mt-3">
+                <ShareButtons url={url} text={shareText(item, priceLabel)} />
               </div>
             </div>
           </div>

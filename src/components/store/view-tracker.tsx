@@ -2,12 +2,16 @@
 
 import { useEffect } from "react";
 
+import { track } from "@/lib/track";
+
 /**
  * Regista a visualização uma vez por produto e por sessão.
  * O servidor volta a limitar por IP, por isso abrir em várias abas não inflaciona.
  */
 export function ViewTracker({ productId }: { productId: string }) {
   useEffect(() => {
+    track("product_view", { productId });
+
     const key = `vz:viewed:${productId}`;
 
     try {
